@@ -125,7 +125,7 @@
       const IS_DECEMBER = now.getMonth() === 11; // 0-indexed months
       const TODAY = now.getDate();
 
-      const KEY = `runAdvent:${year}`; // namespaced per-year
+      const KEY = `runAdvent:${year}:seq1`; // namespaced per-year + version so sequential mode doesn't reuse old random state
       const calendarEl = document.getElementById('calendar');
       const statusEl = document.getElementById('status');
       const todayMsg = document.getElementById('todayMsg');
@@ -166,7 +166,20 @@
       function loadOrInit(){
         const raw = localStorage.getItem(KEY);
         if(raw){
-          try{ return JSON.parse(raw); }catch(e){}
+          try{ 
+            const parsed = JSON.parse(raw);
+            // If an old state exists but its order is not sequential, migrate it
+            if(Array.isArray(parsed.order) && parsed.order.length === 24){
+              const isSequential = parsed.order.every((v, i) => v === i + 1);
+              if(!isSequential){
+                const order = [...Array(24)].map((_,i)=> i+1);
+                parsed.order = order; parsed.opened = {}; // reset progress for clarity
+                localStorage.setItem(KEY, JSON.stringify(parsed));
+                return parsed;
+              }
+            }
+            return parsed;
+          }catch(e){}
         }
         const order = [...Array(24)].map((_,i)=> i+1);
         const opened = {};
